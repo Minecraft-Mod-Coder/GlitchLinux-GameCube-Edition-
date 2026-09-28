@@ -1,0 +1,46 @@
+name: Build GameCube DOL
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "gc_homebrew/**"
+      - ".github/workflows/gamecube-dol.yml"
+  pull_request:
+    paths:
+      - "gc_homebrew/**"
+      - ".github/workflows/gamecube-dol.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install devkitPro pacman
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install --yes wget
+          wget --quiet https://apt.devkitpro.org/install-devkitpro-pacman
+          sudo bash ./install-devkitpro-pacman
+
+      - name: Install GameCube SDK
+        run: sudo dkp-pacman -S --noconfirm gamecube-dev
+
+      - name: Build DOL
+        run: make -C gc_homebrew
+        env:
+          DEVKITPRO: /opt/devkitpro
+          DEVKITPPC: /opt/devkitpro/devkitPPC
+
+      - name: Upload DOL
+        uses: actions/upload-artifact@v4
+        with:
+          name: glitchlinux-gamecube-dol
+          path: gc_homebrew/glitchlinux_gc.dol
+          if-no-files-found: error
